@@ -10,3 +10,4 @@ public class PointOfSaleApplication {
 		SpringApplication.run(PointOfSaleApplication.class, args);
 	}
 }
+//
