@@ -41,10 +41,6 @@ pipeline {
             steps {
                 script {
                     dir('jenkins/POV-JAVA') {
-                        // Arrêter et supprimer le conteneur s'il existe déjà
-                        sh "docker stop test-pos || true"
-                        sh "docker rm test-pos || true"
-                        // Lancer le nouveau conteneur
                         sh "docker run --name test-pos -d -p 8585:8282 lachgar/pos"
                     }
                 }
