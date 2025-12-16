@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     tools {
         maven 'maven'
     }
@@ -8,64 +7,44 @@ pipeline {
     stages {
         stage('Git Clone') {
             steps {
-                echo 'Récupération du code source...'
-                checkout([$class: 'GitSCM',
-                    branches: [[name: 'main']],
-                    userRemoteConfigs: [[url: 'https://github.com/SaadBengrich/tp30.git']]
-                ])
+                script {
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: 'main']],
+                        userRemoteConfigs: [[url: 'https://github.com/SaadBengrich/tp30.git']]
+                    ])
+                }
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Construction du projet...'
-                dir('jenkins/POV-JAVA') {
-                    bat 'mvn clean install -DskipTests'
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Exécution des tests...'
-                dir('jenkins/POV-JAVA') {
-                    bat 'mvn test'
-                }
-            }
-            post {
-                always {
-                    junit 'jenkins/POV-JAVA/target/surefire-reports/*.xml'
+                script {
+                   // Se placer dans le dossier du projet avant de lancer Maven
+                   dir('jenkins/POV-JAVA') {
+                      sh 'mvn clean install'
+                   }
                 }
             }
         }
 
         stage('Create Docker Image') {
             steps {
-                echo 'Construction de l\'image Docker...'
-                dir('jenkins/POV-JAVA') {
-                    bat 'docker build -t lachgar/pos .'
+                script {
+                    dir('jenkins/POV-JAVA') {
+                        sh 'docker build -t lachgar/pos .'
+                    }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Run') {
             steps {
-                echo 'Déploiement de l\'application...'
-                bat '''
-                    docker stop test-pos || exit 0
-                    docker rm test-pos || exit 0
-                    docker run -d --name test-pos -p 8585:8282 lachgar/pos
-                '''
+                script {
+                    dir('jenkins/POV-JAVA') {
+                        sh "docker run --name test-pos -d -p 8585:8282 lachgar/pos"
+                    }
+                }
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline exécuté avec succès!'
-        }
-        failure {
-            echo 'Le pipeline a échoué!'
         }
     }
 }
