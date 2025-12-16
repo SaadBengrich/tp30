@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 public class PointOfSaleApplication {
+	// Test webhook Jenkins - 16/12/2025
 	public static void main(String[] args) {
 		SpringApplication.run(PointOfSaleApplication.class, args);
 	}
