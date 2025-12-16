@@ -9,7 +9,10 @@ pipeline {
         stage('Git Clone') {
             steps {
                 echo 'Récupération du code source...'
-                checkout scm
+                checkout([$class: 'GitSCM',
+                    branches: [[name: 'main']],
+                    userRemoteConfigs: [[url: 'https://github.com/SaadBengrich/tp30.git']]
+                ])
             }
         }
 
@@ -17,8 +20,7 @@ pipeline {
             steps {
                 echo 'Construction du projet...'
                 dir('jenkins/POV-JAVA') {
-                    sh 'chmod +x mvnw'
-                    sh './mvnw clean package -DskipTests'
+                    bat 'mvn clean install -DskipTests'
                 }
             }
         }
@@ -27,7 +29,7 @@ pipeline {
             steps {
                 echo 'Exécution des tests...'
                 dir('jenkins/POV-JAVA') {
-                    sh './mvnw test'
+                    bat 'mvn test'
                 }
             }
             post {
@@ -41,8 +43,7 @@ pipeline {
             steps {
                 echo 'Construction de l\'image Docker...'
                 dir('jenkins/POV-JAVA') {
-                    sh 'docker build -t pov-java:${BUILD_NUMBER} .'
-                    sh 'docker tag pov-java:${BUILD_NUMBER} pov-java:latest'
+                    bat 'docker build -t lachgar/pos .'
                 }
             }
         }
@@ -50,10 +51,10 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Déploiement de l\'application...'
-                sh '''
-                    docker stop pov-java || true
-                    docker rm pov-java || true
-                    docker run -d --name pov-java -p 8080:8282 pov-java:latest
+                bat '''
+                    docker stop test-pos || exit 0
+                    docker rm test-pos || exit 0
+                    docker run -d --name test-pos -p 8585:8282 lachgar/pos
                 '''
             }
         }
@@ -65,9 +66,6 @@ pipeline {
         }
         failure {
             echo 'Le pipeline a échoué!'
-        }
-        always {
-            cleanWs()
         }
     }
 }
