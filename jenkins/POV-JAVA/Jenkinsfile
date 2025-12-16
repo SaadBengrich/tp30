@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven' // Assurez-vous que Maven est configuré dans Jenkins
+        jdk 'JDK17'   // Assurez-vous que JDK 17 est configuré dans Jenkins
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Récupération du code source...'
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Construction du projet...'
+                dir('jenkins/POV-JAVA') {
+                    sh 'chmod +x mvnw'
+                    sh './mvnw clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Exécution des tests...'
+                dir('jenkins/POV-JAVA') {
+                    sh './mvnw test'
+                }
+            }
+            post {
+                always {
+                    junit 'jenkins/POV-JAVA/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo 'Construction de l\'image Docker...'
+                dir('jenkins/POV-JAVA') {
+                    sh 'docker build -t pov-java:${BUILD_NUMBER} .'
+                    sh 'docker tag pov-java:${BUILD_NUMBER} pov-java:latest'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Déploiement de l\'application...'
+                sh '''
+                    docker stop pov-java || true
+                    docker rm pov-java || true
+                    docker run -d --name pov-java -p 8080:8282 pov-java:latest
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline exécuté avec succès!'
+        }
+        failure {
+            echo 'Le pipeline a échoué!'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
+
